@@ -1,0 +1,17 @@
+/.idea
+/.settings
+
+*.project
+*.classpath
+*.iml
+*.eml
+
+# .gitignore for maven 
+target/
+.settings/
+.metadata/
+Servers/
+/Servers/Tomcat v8.0 Server at localhost-config/*.xml
+.idea/
+/xtionframe/xtionframe-web/src/main/resources/gateway.properties
+/xtionframe/xtionframe-web/src/main/resources/gateway.properties

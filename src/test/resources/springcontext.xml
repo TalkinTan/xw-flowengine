@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+	http://www.springframework.org/schema/context
+http://www.springframework.org/schema/context/spring-context-3.0.xsd">
+    <!--<context:component-scan base-package="com.xuanwu.apaas"></context:component-scan>-->
+    <bean id="dataSource" class="org.apache.commons.dbcp.BasicDataSource"
+          destroy-method="close">
+        <!--<property name="driverClassName" value="com.mysql.cj.jdbc.Driver"/>-->
+        <property name="driverClassName" value="org.postgresql.Driver"/>
+        <!--<property name="url" value="jdbc:mysql://localhost:3306/activiti?serverTimezone=GMT"/>-->
+        <!--<property name="url" value="jdbc:postgresql://172.16.0.127:5432/tenant_1008194"/>-->
+        <property name="url" value="jdbc:postgresql://localhost:5432/activiti_test"/>
+        <property name="username" value="postgres"/>
+        <property name="password" value="111111"/>
+        <property name="initialSize" value="20"/>
+        <property name="maxActive" value="50"/>
+        <property name="maxIdle" value="20"/>
+        <property name="minIdle" value="10"/>
+    </bean>
+    <!--<bean id="dataSource" class="com.alibaba.druid.pool.DruidDataSource" init-method="init" destroy-method="close">
+        <property name="url" value="jdbc:mysql://localhost:3306/activiti?serverTimezone=GMT" />
+        <property name="username" value="root" />
+        <property name="password" value="111111" />
+        <property name="maxActive" value="20" />
+        <property name="initialSize" value="1" />
+        <property name="maxWait" value="60000" />
+        <property name="minIdle" value="1" />
+    </bean>-->
+    <bean id="transactionManager"
+          class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+        <property name="dataSource" ref="dataSource"></property>
+    </bean>
+    <bean id="processEngineConfiguration" class="org.activiti.spring.SpringProcessEngineConfiguration">
+        <property name="dataSource" ref="dataSource"/>
+        <property name="transactionManager" ref="transactionManager"/>
+        <property name="databaseSchemaUpdate" value="false"/>
+        <property name="jobExecutorActivate" value="false"/>
+        <property name="activityFontName" value="宋体"/>
+        <property name="labelFontName" value="宋体"/>
+        <property name="annotationFontName" value="宋体"/>
+        <property name="idGenerator">
+            <bean class="com.xuanwu.flowengine.extend.CustomIdGenerator">
+                <constructor-arg name="workerId" value="1"></constructor-arg>
+                <constructor-arg name="dataCenterId" value="1"></constructor-arg>
+            </bean>
+        </property>
+        <property name="customMybatisXMLMappers">
+            <set>
+                <value>com/xuanwu/apaas/db/mapping/FlowCategory-mapper.xml</value>
+                <value>com/xuanwu/apaas/db/mapping/FlowCategoryRelation-mapper.xml</value>
+            </set>
+        </property>
+        <property name="customDefaultBpmnParseHandlers">
+            <list>
+                <bean class="com.xuanwu.flowengine.extend.ExtensionUserTaskParseHandler"/>
+                <bean class="com.xuanwu.flowengine.extend.ExtensionStartEventParseHandler"/>
+            </list>
+        </property>
+        <!--<property name="customSessionFactories">
+            <list>
+                <bean class="CustomGroupEntityManagerFactory">
+                    <property name="groupEntityManager">
+                        <bean class="CustomGroupEntityManager">
+                            <constructor-arg name="tenantCode" value="1008199"/>
+                            <constructor-arg name="productCode" value="834683221240184836"/>
+                        </bean>
+
+                    </property>
+                </bean>
+                <bean class="CustomUserEntityManagerFactory">
+                    <property name="userEntityManager">
+                        <bean class="CustomUserEntityManager">
+                            <constructor-arg name="tenantCode" value="1008199"/>
+                            <constructor-arg name="productCode" value="834683221240184836"/>
+                        </bean>
+                    </property>
+                </bean>
+            </list>
+        </property>-->
+    </bean>
+    <bean id="processEngine" class="org.activiti.spring.ProcessEngineFactoryBean">
+        <property name="processEngineConfiguration" ref="processEngineConfiguration"/>
+    </bean>
+    <bean id="repositoryService" factory-bean="processEngine"
+          factory-method="getRepositoryService"/>
+    <bean id="runtimeService" factory-bean="processEngine"
+          factory-method="getRuntimeService"/>
+    <bean id="taskService" factory-bean="processEngine"
+          factory-method="getTaskService"/>
+    <bean id="historyService" factory-bean="processEngine"
+          factory-method="getHistoryService"/>
+    <bean id="managementService" factory-bean="processEngine"
+          factory-method="getManagementService"/>
+    <bean id="identityService" factory-bean="processEngine" factory-method="getIdentityService"/>
+
+    <context:property-placeholder location="classpath:application.properties" ignore-unresolvable="true"/>
+
+</beans>

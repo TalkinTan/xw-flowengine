@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <script src="app/libs/jquery_1.11.0/jquery.min.js"></script>
+</head>
+
+<script type="text/javascript">
+    function show() {
+        $.post('http://localhost:8080/service/modelList',function (data) {
+            console.info(data);
+            $("#content").html(JSON.stringify(data));
+        })
+    }
+</script>
+
+<body>
+    <a href="#" onclick="show()">请求显示内容</a>
+    <p/>
+    <div id ="content"></div>
+</body>
+</html>

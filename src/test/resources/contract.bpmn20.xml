@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:activiti="http://activiti.org/bpmn"
+             xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:omgdc="http://www.omg.org/spec/DD/20100524/DC"
+             xmlns:omgdi="http://www.omg.org/spec/DD/20100524/DI" typeLanguage="http://www.w3.org/2001/XMLSchema"
+             expressionLanguage="http://www.w3.org/1999/XPath" targetNamespace="http://www.activiti.org/test">
+    <process id="contract" name="合同审批申请" isExecutable="true">
+        <extensionElements>
+            <activiti:processinstancerule  value="le:{ctrl_contractname}+'的合同申请'"></activiti:processinstancerule>
+        </extensionElements>
+        <startEvent id="startevent1" name="开始" activiti:initiator="applyUser"></startEvent>
+        <userTask id="af_initiatetask" name="渠道业务员发起合同申请" activiti:assignee="${applyUser}">
+            <extensionElements>
+                <activiti:relateui uiconfig="" ></activiti:relateui>
+                <activiti:mode value="manual"></activiti:mode>
+            </extensionElements>
+        </userTask>
+        <sequenceFlow id="flow1" sourceRef="startevent1" targetRef="af_initiatetask"></sequenceFlow>
+        <userTask id="manageraudit" name="部门经理审批">
+            <extensionElements>
+                <activiti:relateui uiconfig="" ></activiti:relateui>
+                <activiti:mode value="manual"></activiti:mode>
+                <activiti:choice value="[1|同意],[2|不同意],[3|中止],[4|退回]"></activiti:choice>
+                <activiti:userstrategy orgvalue="" type="fixpost" postvalue="8"></activiti:userstrategy>
+            </extensionElements>
+        </userTask>
+        <sequenceFlow id="flow2" sourceRef="af_initiatetask" targetRef="manageraudit"></sequenceFlow>
+        <exclusiveGateway id="exclusivegateway1" name="金额判定网关">
+            <documentation>金额判定网关</documentation>
+        </exclusiveGateway>
+        <sequenceFlow id="flow3" sourceRef="manageraudit" targetRef="exclusivegateway1"></sequenceFlow>
+        <userTask id="ceoaudit" name="总经理审批">
+            <extensionElements>
+                <activiti:relateui uiconfig="" ></activiti:relateui>
+                <activiti:mode value="manual"></activiti:mode>
+                <activiti:choice value="[1|同意],[2|不同意],[4|退回]"></activiti:choice>
+                <activiti:userstrategy orgvalue="" type="fixpost" postvalue="13"></activiti:userstrategy>
+            </extensionElements>
+        </userTask>
+        <sequenceFlow id="flow4" name="合同签约金额大于等于10000" sourceRef="exclusivegateway1" targetRef="ceoaudit">
+            <conditionExpression xsi:type="tFormalExpression"><![CDATA[${kx_contract.amount >= 10000}]]></conditionExpression>
+        </sequenceFlow>
+        <endEvent id="结束" name="End"></endEvent>
+        <sequenceFlow id="flow5" name="合同签约金额小于10000" sourceRef="exclusivegateway1" targetRef="结束">
+            <conditionExpression xsi:type="tFormalExpression"><![CDATA[${kx_contract.amount < 10000}]]></conditionExpression>
+        </sequenceFlow>
+        <sequenceFlow id="flow6" sourceRef="ceoaudit" targetRef="结束"></sequenceFlow>
+    </process>
+    <bpmndi:BPMNDiagram id="BPMNDiagram_contractflow">
+        <bpmndi:BPMNPlane bpmnElement="contract" id="BPMNPlane_contractflow">
+            <bpmndi:BPMNShape bpmnElement="startevent1" id="BPMNShape_startevent1">
+                <omgdc:Bounds height="35.0" width="35.0" x="110.0" y="180.0"></omgdc:Bounds>
+            </bpmndi:BPMNShape>
+            <bpmndi:BPMNShape bpmnElement="af_initiatetask" id="BPMNShape_af_initiatetask">
+                <omgdc:Bounds height="55.0" width="105.0" x="230.0" y="170.0"></omgdc:Bounds>
+            </bpmndi:BPMNShape>
+            <bpmndi:BPMNShape bpmnElement="manageraudit" id="BPMNShape_manageraudit">
+                <omgdc:Bounds height="55.0" width="105.0" x="440.0" y="170.0"></omgdc:Bounds>
+            </bpmndi:BPMNShape>
+            <bpmndi:BPMNShape bpmnElement="exclusivegateway1" id="BPMNShape_exclusivegateway1">
+                <omgdc:Bounds height="40.0" width="40.0" x="630.0" y="178.0"></omgdc:Bounds>
+            </bpmndi:BPMNShape>
+            <bpmndi:BPMNShape bpmnElement="ceoaudit" id="BPMNShape_ceoaudit">
+                <omgdc:Bounds height="55.0" width="105.0" x="598.0" y="300.0"></omgdc:Bounds>
+            </bpmndi:BPMNShape>
+            <bpmndi:BPMNShape bpmnElement="结束" id="BPMNShape_结束">
+                <omgdc:Bounds height="35.0" width="35.0" x="790.0" y="181.0"></omgdc:Bounds>
+            </bpmndi:BPMNShape>
+            <bpmndi:BPMNEdge bpmnElement="flow1" id="BPMNEdge_flow1">
+                <omgdi:waypoint x="145.0" y="197.0"></omgdi:waypoint>
+                <omgdi:waypoint x="230.0" y="197.0"></omgdi:waypoint>
+            </bpmndi:BPMNEdge>
+            <bpmndi:BPMNEdge bpmnElement="flow2" id="BPMNEdge_flow2">
+                <omgdi:waypoint x="335.0" y="197.0"></omgdi:waypoint>
+                <omgdi:waypoint x="440.0" y="197.0"></omgdi:waypoint>
+            </bpmndi:BPMNEdge>
+            <bpmndi:BPMNEdge bpmnElement="flow3" id="BPMNEdge_flow3">
+                <omgdi:waypoint x="545.0" y="197.0"></omgdi:waypoint>
+                <omgdi:waypoint x="630.0" y="198.0"></omgdi:waypoint>
+            </bpmndi:BPMNEdge>
+            <bpmndi:BPMNEdge bpmnElement="flow4" id="BPMNEdge_flow4">
+                <omgdi:waypoint x="650.0" y="218.0"></omgdi:waypoint>
+                <omgdi:waypoint x="650.0" y="300.0"></omgdi:waypoint>
+                <bpmndi:BPMNLabel>
+                    <omgdc:Bounds height="42.0" width="100.0" x="650.0" y="239.0"></omgdc:Bounds>
+                </bpmndi:BPMNLabel>
+            </bpmndi:BPMNEdge>
+            <bpmndi:BPMNEdge bpmnElement="flow5" id="BPMNEdge_flow5">
+                <omgdi:waypoint x="670.0" y="198.0"></omgdi:waypoint>
+                <omgdi:waypoint x="790.0" y="198.0"></omgdi:waypoint>
+                <bpmndi:BPMNLabel>
+                    <omgdc:Bounds height="42.0" width="100.0" x="683.0" y="199.0"></omgdc:Bounds>
+                </bpmndi:BPMNLabel>
+            </bpmndi:BPMNEdge>
+            <bpmndi:BPMNEdge bpmnElement="flow6" id="BPMNEdge_flow6">
+                <omgdi:waypoint x="650.0" y="300.0"></omgdi:waypoint>
+                <omgdi:waypoint x="807.0" y="216.0"></omgdi:waypoint>
+            </bpmndi:BPMNEdge>
+        </bpmndi:BPMNPlane>
+    </bpmndi:BPMNDiagram>
+</definitions>

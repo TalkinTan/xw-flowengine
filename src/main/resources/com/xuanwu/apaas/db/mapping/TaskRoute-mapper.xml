@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.xuanwu.flowengine.dao.impl.TaskRouteDaoImpl">
+    <resultMap id="TaskRoute" type="com.xuanwu.flowengine.entity.TaskRouteEntity">
+        <id column="pathid" javaType="Long" property="routeId" jdbcType="BIGINT"/>
+        <result column="processinstanceid" javaType="String" property="processInstanceId" jdbcType="VARCHAR"/>
+        <result column="executionid" javaType="String" property="processExecutionId" jdbcType="VARCHAR"/>
+        <result column="processdefineid" javaType="String" property="processDefineId" jdbcType="VARCHAR"/>
+        <result column="taskinstanceid" javaType="String" property="taskInstanceId" jdbcType="VARCHAR"/>
+        <result column="taskkey" javaType="String" property="taskKey" jdbcType="VARCHAR"/>
+        <result column="taskname" javaType="String" property="taskName" jdbcType="VARCHAR"/>
+        <result column="ismultiinstance" javaType="boolean" property="jointNode" jdbcType="BOOLEAN"/>
+        <result column="starttime" javaType="Date" property="startTime" jdbcType="TIMESTAMP"/>
+        <result column="endtime" javaType="Date" property="endTime" jdbcType="TIMESTAMP"/>
+        <result column="jumpintype" javaType="String" property="jumpInType" jdbcType="VARCHAR"/>
+        <result column="jumpouttype" javaType="String" property="jumpOutType" jdbcType="VARCHAR"/>
+        <result column="prevpathid" javaType="Long" property="prevRouteId" jdbcType="BIGINT"/>
+    </resultMap>
+
+    <sql id="columns">
+        pathid, processinstanceid, executionid, processdefineid, taskinstanceid, taskkey, taskname, ismultiinstance, starttime, endtime, jumpintype, jumpouttype, prevpathid
+    </sql>
+
+    <insert id="insert" parameterType="com.xuanwu.flowengine.entity.TaskRouteEntity">
+        insert into act_taskroute (<include refid="columns"/>) VALUES
+        (#{routeId, jdbcType=BIGINT}, #{processInstanceId, jdbcType=VARCHAR}, #{processExecutionId, jdbcType=VARCHAR},
+        #{processDefineId, jdbcType=VARCHAR}, #{taskInstanceId, jdbcType=VARCHAR},
+        #{taskKey, jdbcType=VARCHAR}, #{taskName, jdbcType=VARCHAR}, #{jointNode, jdbcType=BOOLEAN},
+        #{startTime, jdbcType=TIMESTAMP}, #{endTime, jdbcType=TIMESTAMP}, #{jumpInType, jdbcType=VARCHAR},
+        #{jumpOutType, jdbcType=VARCHAR}, #{prevRouteId, jdbcType=BIGINT})
+    </insert>
+
+    <update id="update" parameterType="com.xuanwu.flowengine.entity.TaskRouteEntity">
+        update act_taskroute
+        <set>
+            <if test="endTime != null">
+                endtime = #{endTime, jdbcType=TIMESTAMP},
+            </if>
+            <if test="jumpOutType != null ">
+                jumpouttype = #{jumpOutType, jdbcType=VARCHAR},
+            </if>
+        </set>
+        where pathid = #{routeId, jdbcType=BIGINT}
+    </update>
+
+    <select id="selectByTaskId" parameterType="java.util.Map" resultMap="TaskRoute">
+        select * from act_taskroute where taskinstanceid = #{taskId, jdbcType=BIGINT}
+    </select>
+
+</mapper>

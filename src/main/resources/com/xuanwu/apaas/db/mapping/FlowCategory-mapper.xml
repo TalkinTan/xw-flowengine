@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.xuanwu.flowengine.mapper.FlowCategoryMapper">
+
+    <sql id="basecolumn">
+        flowcategorycode, flowcategoryname, pflowcategorycode, status
+    </sql>
+
+    <resultMap id="FlowCategoryEntity" type="com.xuanwu.flowengine.entity.FlowCategoryEntity">
+        <result property="flowCategoryCode" column="flowcategorycode" jdbcType="BIGINT"/>
+        <result property="flowCategoryName" column="flowcategoryname" jdbcType="VARCHAR"/>
+        <result property="parentCode" column="pflowcategorycode" jdbcType="BIGINT"/>
+        <result property="status" column="status" jdbcType="INTEGER"/>
+    </resultMap>
+
+    <resultMap id="FlowCatetoryDetail" type="com.xuanwu.flowengine.entity.dto.FlowCategoryDetailDto">
+        <id property="flowCategoryCode" column="flowcategorycode" jdbcType="BIGINT"/>
+        <result property="flowCategoryName" column="flowcategoryname" jdbcType="VARCHAR"/>
+        <result property="parentCode" column="pflowcategorycode" jdbcType="BIGINT"/>
+        <result property="status" column="status" jdbcType="INTEGER"/>
+        <collection property="processList" ofType="ProcessBasicInfo">
+            <result property="processKey" column="processkey" jdbcType="VARCHAR"/>
+            <result property="processName" column="processname" jdbcType="VARCHAR"/>
+        </collection>
+    </resultMap>
+
+    <insert id="insert" parameterType="com.xuanwu.flowengine.entity.FlowCategoryEntity">
+        insert into act_flowcategory (flowcategorycode,flowcategoryname,pflowcategorycode,status)
+        values (#{flowCategoryCode,jdbcType=BIGINT}, #{flowCategoryName,jdbcType=VARCHAR},
+        #{parentCode,jdbcType=BIGINT}, #{status,jdbcType=INTEGER})
+    </insert>
+
+    <update id="update" parameterType="com.xuanwu.flowengine.entity.FlowCategoryEntity">
+        update act_flowcategory
+        <set>
+            <if test="flowCategoryName != null">
+                flowcategoryname = #{flowCategoryName,jdbcType=VARCHAR},
+            </if>
+            <if test="parentCode != null">
+                pflowcategorycode = #{parentCode,jdbcType=BIGINT},
+            </if>
+        </set>
+        where flowcategorycode = #{flowCategoryCode,jdbcType=BIGINT}
+    </update>
+
+    <update id="delete" parameterType="java.util.Map">
+        update act_flowcategory set status = 0  where flowcategorycode = #{flowCategoryCode,jdbcType=BIGINT}
+    </update>
+
+    <select id="selectAll" resultMap="FlowCategoryEntity">
+        select
+        <include refid="basecolumn"/>
+        from act_flowcategory where status = 1
+    </select>
+
+    <select id="selectById" parameterType="java.util.Map" resultMap="FlowCategoryEntity">
+        select
+        <include refid="basecolumn"/>
+        from act_flowcategory where
+        flowcategorycode = #{flowCategoryCode,jdbcType=BIGINT} and status = 1
+    </select>
+
+    <select id="selectcount" parameterType="java.util.Map" resultType="long">
+        select count(1) from act_flowcategory where status = 1
+    </select>
+
+    <select id="selectlist" parameterType="java.util.Map" resultMap="FlowCategoryEntity">
+        select
+        <include refid="basecolumn"/>
+        from act_flowcategory where status = 1 order by flowcategorycode limit #{limit} offset #{offset}
+    </select>
+
+    <select id="selectDetailWithoutPrivilege" parameterType="java.util.Map" resultMap="FlowCatetoryDetail">
+        select afc.*, arp.key_ processkey, arp.name_ processname
+        from act_flowcategory afc
+        left join act_flowrelation afr on afc.flowcategorycode = afr.flowcategorycode and afr.status = 1
+        left join act_re_model arm on afr.flowmodelcode = arm.id_
+        left join act_re_procdef arp on arm.deployment_id_ = arp.deployment_id_ and arp.suspension_state_ = 1 where afc.status = 1
+    </select>
+
+    <select id="selectCategoryDetailWithPrivilege" parameterType="java.util.Map" resultMap="FlowCatetoryDetail">
+        with tmp as
+        (
+                select * from act_re_model where id_ in
+                (
+                        select distinct rpr.processmodelcode from pl_roleprocessrule as rpr
+                        inner join pl_orgstructrole as osr
+                        on rpr.roleid = osr.rolecode
+                        where osr.orgstructid = #{positionId, jdbcType=BIGINT}
+                )
+        )
+            select afc.*, arp.key_ processkey, arp.name_ processname
+            from act_flowcategory afc
+            left join act_flowrelation afr on afc.flowcategorycode = afr.flowcategorycode and afr.status = 1
+            left join tmp arm on afr.flowmodelcode = arm.id_
+            left join act_re_procdef arp on arm.deployment_id_ = arp.deployment_id_ and arp.suspension_state_ = 1
+            where afc.status = 1 ;
+    </select>
+
+    <select id="checkPrivilegeByProcessKey" parameterType="java.util.Map" resultType="long">
+        select count(1)
+        from pl_roleprocessrule rpr
+        inner join pl_orgstructrole osr
+        on rpr.roleid = osr.rolecode
+        inner join act_re_model rm
+        on rpr.processmodelcode = rm.id_
+        inner join act_re_procdef  rp
+        on rm.deployment_id_ = rp.deployment_id_
+        where osr.orgstructid = #{positionId, jdbcType=BIGINT} and rp.key_ = #{processKey, jdbcType=VARCHAR}
+    </select>
+
+    <select id="checkIfExists" parameterType="java.util.Map" resultType="long">
+        select count(1) from act_flowcategory where flowcategoryname = #{name, jdbcType=VARCHAR} and flowcategorycode != #{code, jdbcType=BIGINT}
+    </select>
+
+    <select id="getProcessCountByCategoryCode" parameterType="java.util.Map" resultType="long">
+        select count(rp.id_)
+        from act_flowcategory af
+        inner join act_flowrelation afr on af.flowcategorycode = afr.flowcategorycode
+        inner join act_re_model rm on afr.flowmodelcode = rm.id_
+        inner join act_re_procdef rp on rm.deployment_id_ = rp.deployment_id_
+        where af.status = 1 and afr.status = 1 and af.flowcategorycode = #{flowCategoryCode, jdbcType=BIGINT}
+    </select>
+
+    <select id="getProcessListByCategoryCode" parameterType="java.util.Map" resultType="java.util.Map">
+        select rp.id_ af_processdefineid, rp.name_ af_processname, rp.key_ af_processkey
+        from act_flowcategory af
+        inner join act_flowrelation afr on af.flowcategorycode = afr.flowcategorycode
+        inner join act_re_model rm on afr.flowmodelcode = rm.id_
+        inner join act_re_procdef rp on rm.deployment_id_ = rp.deployment_id_
+        where af.status = 1 and afr.status = 1 and af.flowcategorycode = #{flowCategoryCode, jdbcType=BIGINT}
+        order by rp.id_ limit #{limit} offset #{offset}
+    </select>
+</mapper>

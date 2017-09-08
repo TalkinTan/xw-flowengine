@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.xuanwu.flowengine.dao.impl.FlowRelationDaoImpl">
+
+    <sql id="basecolumn">
+        flowrelationcode, flowmodelcode, flowmodelname, directorycode, flowcategorycode, createtime, updatetime, status
+    </sql>
+
+    <resultMap id="FlowCategoryRelationEntity" type="com.xuanwu.flowengine.entity.FlowCategoryRelationEntity">
+        <result property="flowRelationCode" column="flowrelationcode" jdbcType="BIGINT"/>
+        <result property="flowModelCode" column="flowmodelcode" jdbcType="VARCHAR"/>
+        <result property="flowModelName" column="flowmodelname" jdbcType="VARCHAR"/>
+        <result property="directoryCode" column="directorycode" jdbcType="BIGINT"/>
+        <result property="flowCategoryCode" column="flowcategorycode" jdbcType="BIGINT"/>
+        <result property="createTime" column="createtime" jdbcType="TIMESTAMP"/>
+        <result property="updateTime" column="updatetime" jdbcType="TIMESTAMP"/>
+        <result property="status" column="status" jdbcType="INTEGER"/>
+    </resultMap>
+
+    <resultMap id="FlowCategoryRelationListDto"
+               type="com.xuanwu.flowengine.entity.dto.FlowCategoryRelationListDto">
+        <result property="flowRelationCode" column="flowrelationcode" jdbcType="BIGINT"/>
+        <result property="flowModelCode" column="flowmodelcode" jdbcType="VARCHAR"/>
+        <result property="flowModelName" column="flowmodelname" jdbcType="VARCHAR"/>
+        <result property="directoryCode" column="directorycode" jdbcType="BIGINT"/>
+        <result property="flowCategoryCode" column="flowcategorycode" jdbcType="BIGINT"/>
+        <result property="createTime" column="createtime" jdbcType="TIMESTAMP"/>
+        <result property="updateTime" column="updatetime" jdbcType="TIMESTAMP"/>
+        <result property="status" column="status" jdbcType="INTEGER"/>
+        <result property="flowCategoryName" column="flowcategoryname" jdbcType="VARCHAR"/>
+        <result property="processDeployId" column="deployid" jdbcType="VARCHAR"/>
+        <result property="processDefineId" column="processdefineid" jdbcType="VARCHAR"/>
+        <result property="suspendState" column="suspension_state_" jdbcType="INTEGER"/>
+        <result property="changeFlag" column="changeflag" javaType="BOOLEAN" />
+    </resultMap>
+
+    <insert id="insert" parameterType="com.xuanwu.flowengine.entity.FlowCategoryRelationEntity">
+        insert into act_flowrelation (
+        <include refid="basecolumn"/>
+        )
+        values (#{flowRelationCode,jdbcType=BIGINT}, #{flowModelCode, jdbcType=VARCHAR},
+        #{flowModelName, jdbcType=VARCHAR}, #{directoryCode,jdbcType=BIGINT},
+        #{flowCategoryCode,jdbcType=BIGINT}, #{createTime, jdbcType=TIMESTAMP}, #{updateTime, jdbcType=TIMESTAMP},
+        #{status,jdbcType=INTEGER})
+    </insert>
+
+    <update id="update" parameterType="com.xuanwu.flowengine.entity.FlowCategoryRelationEntity">
+        update act_flowrelation
+        <set>
+            <if test="flowModelCode != null">
+                flowmodelcode = #{flowModelCode,jdbcType=VARCHAR},
+            </if>
+            <if test="flowModelName != null">
+                flowmodelname = #{flowModelName,jdbcType=VARCHAR},
+            </if>
+            <if test="directoryCode != null">
+                directorycode = #{directoryCode, jdbcType=BIGINT},
+            </if>
+            <if test="flowCategoryCode != null">
+                flowcategorycode = #{flowCategoryCode, jdbcType=BIGINT},
+            </if>
+            <if test="updateTime != null">
+                updatetime = #{updateTime, jdbcType=TIMESTAMP},
+            </if>
+        </set>
+        where flowrelationcode = #{flowRelationCode,jdbcType=BIGINT}
+    </update>
+
+    <update id="delete" parameterType="java.util.Map">
+        update act_flowrelation set status = 0  where flowrelationcode = #{flowRelationCode,jdbcType=BIGINT}
+    </update>
+
+    <delete id="deletebymodelcode" parameterType="java.util.Map">
+        update act_flowrelation set status = 0 where flowmodelcode = #{flowModelCode, jdbcType=VARCHAR}
+    </delete>
+
+    <select id="selectcount" parameterType="java.util.Map" resultType="long">
+        select count(1) from act_flowrelation where directorycode = #{directoryCode, jdbcType=BIGINT} and status = 1
+        <if test="modelName != null">
+            and flowmodelname ilike '%' || #{modelName, jdbcType=VARCHAR} || '%'
+        </if>
+    </select>
+
+    <select id="selectlist" parameterType="java.util.Map" resultMap="FlowCategoryRelationListDto">
+        select r.flowrelationcode, r.flowmodelcode, m.name_ flowmodelname, r.directorycode, r.flowcategorycode, r.status, c.flowcategoryname,
+        m.create_time_ createtime, m.last_update_time_ updateTime, p.deployment_id_ deployid, p.id_ processdefineid, p.suspension_state_,
+        case when m.rev_ = m.version_ then 'false' else 'true' end changeflag
+        from act_flowrelation r inner join act_flowcategory c
+        on r.flowcategorycode = c.flowcategorycode
+        inner join act_re_model m
+        on r.flowmodelcode = m.id_
+        left join act_re_procdef p
+        on m.deployment_id_ = p.deployment_id_
+        where r.directorycode = #{directoryCode, jdbcType=BIGINT} and r.status = 1
+        <if test="modelName != null" >
+            and r.flowmodelname ilike '%' || #{modelName, jdbcType=VARCHAR} || '%'
+        </if>
+        order by r.flowrelationcode  limit #{limit} offset #{offset}
+    </select>
+
+</mapper>

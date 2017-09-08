@@ -1,0 +1,419 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.xuanwu.flowengine.mapper.CustomTaskListMapper">
+    <resultMap id="MyTaskList" type="com.xuanwu.flowengine.entity.TaskEntityWrapper">
+        <result column="processdefineid" property="processDefineId" jdbcType="VARCHAR"/>
+        <result column="processdefinekey" property="processDefineKey" jdbcType="VARCHAR"/>
+        <result column="processdefinename" property="processDefineName" jdbcType="VARCHAR"/>
+        <result column="processinstanceid" property="processInstanceId" jdbcType="VARCHAR"/>
+        <result column="processinstancename" property="processInstanceName" jdbcType="VARCHAR"/>
+        <result column="taskid" property="taskId" jdbcType="VARCHAR"/>
+        <result column="taskname" property="taskName" jdbcType="VARCHAR"/>
+        <result column="taskkey" property="taskKey" jdbcType="VARCHAR"/>
+        <result column="createtime" property="createTime" jdbcType="TIMESTAMP"/>
+        <result column="endtime" property="endTime" jdbcType="TIMESTAMP"/>
+        <result column="hasassigned" property="hasAssigned" jdbcType="BOOLEAN"/>
+        <result column="applyusercode" property="applyUserCode" jdbcType="VARCHAR"/>
+        <result column="applyusername" property="applyUserName" jdbcType="VARCHAR"/>
+        <result column="applytime" property="applyTime" jdbcType="TIMESTAMP"/>
+        <result column="hasend" property="hasEnd" javaType="BOOLEAN"/>
+        <result column="isfallback" property="fallBack" jdbcType="BOOLEAN"/>
+        <result column="deletereason" property="deleteReason" jdbcType="VARCHAR"/>
+    </resultMap>
+    
+    <resultMap id="FlowMessageParam" type="com.xuanwu.flowengine.entity.dto.FlowMessageParam">
+        <result column="processdefineid" property="processDefineId" jdbcType="VARCHAR"/>
+        <result column="processdefinename" property="processDefineName" jdbcType="VARCHAR"/>
+        <result column="processinstanceid" property="processInstanceId" jdbcType="VARCHAR"/>
+        <result column="processinstantcename" property="processInstanceName" jdbcType="VARCHAR"/>
+        <result column="applyusercode" property="applyUserCode" jdbcType="VARCHAR"/>
+        <result column="hasend" property="hasEnd" javaType="BOOLEAN"/>
+        <collection property="forwardTaskState" ofType="com.xuanwu.flowengine.entity.dto.TaskBasic">
+            <result column="taskid" property="taskId" jdbcType="VARCHAR" />
+            <result column="taskkey" property="taskKey" jdbcType="VARCHAR" />
+            <result column="taskname" property="taskName" jdbcType="VARCHAR" />
+            <result column="taskhandler" property="handler" jdbcType="VARCHAR" />
+        </collection>
+    </resultMap>
+
+    <select id="getMyToDoCount" parameterType="java.util.Map" resultType="long">
+        with tmp as
+        (
+        select distinct rt.*, tr.jumpintype from act_ru_task rt
+        left join act_ru_identitylink ri
+        on rt.id_ = ri.task_id_
+        left join act_taskroute tr
+        on rt.id_ = tr.taskinstanceid
+        where (rt.assignee_ = #{memberId} or (rt.assignee_ is null and ri.type_ = 'candidate' and (ri.user_id_ =
+        #{memberId})))
+        )
+        select count(1)
+        from tmp inner join act_re_procdef rp
+        on tmp.proc_def_id_ = rp.id_
+        inner join act_hi_procinst hp
+        on tmp.proc_inst_id_ = hp.proc_inst_id_
+        left join pl_orgstruct po
+        on hp.start_user_id_ = po.orgstructid::varchar
+        left join pl_userinfo pu
+        on po.userinfoid = pu.userinfoid
+        <where>
+            <if test="processinstancename != null">
+                hp.name_ like '%' || #{processinstancename} ||'%'
+            </if>
+            <if test="processdefinename != null">
+                and rp.name_ like '%' || #{processdefinename} || '%'
+            </if>
+            <if test="applyusername != null">
+                and pu.userinfoname like '%' || #{applyusername} || '%'
+            </if>
+            <if test="startdate != null">
+                and tmp.create_time_ &gt;= #{startdate}
+            </if>
+        </where>
+    </select>
+
+    <select id="getMyToDoPageList" parameterType="java.util.Map" resultMap="MyTaskList">
+        with tmp as
+        (
+        select distinct rt.*, tr.jumpintype from act_ru_task rt
+        left join act_ru_identitylink ri
+        on rt.id_ = ri.task_id_
+        left join act_taskroute tr
+        on rt.id_ = tr.taskinstanceid
+        where (rt.assignee_ = #{memberId} or (rt.assignee_ is null and ri.type_ = 'candidate' and (ri.user_id_ =
+        #{memberId})))
+        )
+        select rp.id_ processdefineid,
+        rp.key_ processdefinekey,
+        rp.name_ processdefinename,
+        tmp.proc_inst_id_ processinstanceid,
+        hp.name_ processinstancename,
+        tmp.id_ taskid,
+        tmp.name_ taskname,
+        tmp.task_def_key_ taskkey,
+        tmp.create_time_ createtime,
+        null endtime,
+        case when tmp.assignee_ is null then false else true end hasassigned,
+        hp.start_user_id_ applyusercode,
+        pu.userinfoname applyusername,
+        hp.start_time_ applytime,
+        case when tmp.jumpintype = 'fallback' then true else false end isfallback
+        from tmp inner join act_re_procdef rp
+        on tmp.proc_def_id_ = rp.id_
+        inner join act_hi_procinst hp
+        on tmp.proc_inst_id_ = hp.proc_inst_id_
+        left join pl_orgstruct po
+        on hp.start_user_id_ = po.orgstructid::varchar
+        left join pl_userinfo pu
+        on po.userinfoid = pu.userinfoid
+        <where>
+            <if test="processinstancename != null">
+                hp.name_ like '%' || #{processinstancename} ||'%'
+            </if>
+            <if test="processdefinename != null">
+                and rp.name_ like '%' || #{processdefinename} || '%'
+            </if>
+            <if test="applyusername != null">
+                and pu.userinfoname like '%' || #{applyusername} || '%'
+            </if>
+            <if test="startdate != null">
+                and tmp.create_time_ &gt;= #{startdate}
+            </if>
+        </where>
+        order by tmp.create_time_ desc
+        limit #{limit} offset #{offset}
+    </select>
+
+    <select id="getMyHaveDoneCount" parameterType="java.util.Map" resultType="long">
+        with tmp1 as
+        (
+        -- find all proc_instanceid
+        select distinct hp.proc_inst_id_, hp.proc_def_id_, hp.start_user_id_ applyusercode, hp.start_time_ applytime,
+        hp.name_ processinstancename,
+        case when hp.end_time_ is null then false else true end hasend
+        from act_hi_procinst hp
+        inner join act_hi_taskinst ht
+        on hp.proc_inst_id_ = ht.proc_inst_id_
+        where ht.end_time_ is not null and ht.assignee_ = #{memberId}
+        ), tmp2 as
+        (
+        -- find the lastest stepname
+        select proc_inst_id_, proc_def_id_, applyusercode, applytime, processinstancename, hasend, act_name_, jumpintype
+        from
+        (
+        select rank() over(partition by tmp1.proc_inst_id_ order by ha.start_time_ desc, ha.end_time_ desc nulls first)
+        ranknum,
+        tmp1.*, ha.act_name_ , tr.jumpintype
+        from tmp1
+        left join act_hi_actinst ha
+        on tmp1.proc_inst_id_ = ha.proc_inst_id_ and ha.act_type_ in ('startEvent', 'userTask', 'endEvent')
+        left join act_taskroute tr
+        on ha.task_id_ = tr.taskinstanceid
+        ) a where ranknum = 1
+        ), tmp as
+        (
+        -- find have done step info
+        select rank() over(partition by tmp2.proc_inst_id_ order by ht.start_time_ desc) ranknum,
+        tmp2.*,
+        ht.id_, ht.task_def_key_, ht.start_time_, ht.assignee_, ht.end_time_
+        from tmp2
+        inner join act_hi_taskinst ht
+        on tmp2.proc_inst_id_ = ht.proc_inst_id_
+        where ht.end_time_ is not null and ht.assignee_ = #{memberId}
+        )
+        select count(1)
+        from tmp
+        inner join act_re_procdef rp
+        on tmp.proc_def_id_ = rp.id_
+        where ranknum = 1
+        <if test="processinstancename != null">
+            and tmp.processinstancename like '%' || #{processinstancename} ||'%'
+        </if>
+        <if test="processdefinename != null">
+            and rp.name_ like '%' || #{processdefinename} || '%'
+        </if>
+        <if test="applyusername != null">
+            and tmp.applyusername like '%' || #{applyusername} || '%'
+        </if>
+        <if test="startdate != null">
+            and tmp.start_time_ &gt;= #{startdate}
+        </if>
+        <if test="enddate != null">
+            and tmp.end_time_ &lt;= #{enddate}
+        </if>
+    </select>
+
+    <select id="getMyHaveDonePageList" parameterType="java.util.Map" resultMap="MyTaskList">
+        with tmp1 as
+        (
+        -- find all proc_instanceid
+        select distinct hp.proc_inst_id_, hp.proc_def_id_, hp.start_user_id_ applyusercode, hp.delete_reason_ deletereason, pu.userinfoname
+        applyusername, hp.start_time_ applytime, hp.name_ processinstancename,
+        case when hp.end_time_ is null then false else true end hasend
+        from act_hi_procinst hp
+        inner join act_hi_taskinst ht
+        on hp.proc_inst_id_ = ht.proc_inst_id_
+        left join pl_orgstruct po
+        on hp.start_user_id_ = po.orgstructid::varchar
+        left join pl_userinfo pu
+        on po.userinfoid = pu.userinfoid
+        where ht.end_time_ is not null and ht.assignee_ = #{memberId}
+        ), tmp2 as
+        (
+        -- find the lastest stepname
+        select proc_inst_id_, proc_def_id_, applyusercode, deletereason, applyusername, applytime, processinstancename, hasend,
+        act_name_, jumpintype from
+        (
+        select rank() over(partition by tmp1.proc_inst_id_ order by ha.start_time_ desc, ha.end_time_ desc nulls first)
+        ranknum,
+        tmp1.*, ha.act_name_ , tr.jumpintype
+        from tmp1
+        left join act_hi_actinst ha
+        on tmp1.proc_inst_id_ = ha.proc_inst_id_ and ha.act_type_ in ('startEvent', 'userTask', 'endEvent')
+        left join act_taskroute tr
+        on ha.task_id_ = tr.taskinstanceid
+        ) a where ranknum = 1
+        ), tmp as
+        (
+        -- find have done step info
+        select rank() over(partition by tmp2.proc_inst_id_ order by ht.start_time_ desc) ranknum,
+        tmp2.*,
+        ht.id_, ht.task_def_key_, ht.start_time_, ht.assignee_, ht.end_time_
+        from tmp2
+        inner join act_hi_taskinst ht
+        on tmp2.proc_inst_id_ = ht.proc_inst_id_
+        where ht.end_time_ is not null and ht.assignee_ = #{memberId}
+        )
+        select rp.id_ processdefineid,
+        rp.key_ processdefinekey,
+        rp.name_ processdefinename,
+        tmp.proc_inst_id_ processinstanceid,
+        tmp.processinstancename,
+        tmp.id_ taskid,
+        tmp.act_name_ taskname,
+        tmp.task_def_key_ taskkey,
+        tmp.start_time_ createtime,
+        tmp.end_time_ endtime,
+        case when tmp.assignee_ is null then false else true end hasassigned,
+        tmp.applyusercode,
+        tmp.applyusername,
+        tmp.applytime,
+        tmp.hasend,
+        case when tmp.jumpintype = 'fallback' then true else false end isfallback,
+        tmp.deletereason
+        from tmp
+        inner join act_re_procdef rp
+        on tmp.proc_def_id_ = rp.id_
+        where ranknum = 1
+        <if test="processinstancename != null">
+            and tmp.processinstancename like '%' || #{processinstancename} ||'%'
+        </if>
+        <if test="processdefinename != null">
+            and rp.name_ like '%' || #{processdefinename} || '%'
+        </if>
+        <if test="applyusername != null">
+            and tmp.applyusername like '%' || #{applyusername} || '%'
+        </if>
+        <if test="startdate != null">
+            and tmp.start_time_ &gt;= #{startdate}
+        </if>
+        <if test="enddate != null">
+            and tmp.end_time_ &lt;= #{enddate}
+        </if>
+        order by tmp.end_time_ desc
+        limit #{limit} offset #{offset}
+    </select>
+
+    <select id="getCurrentTaskInfo" parameterType="java.util.Map" resultMap="FlowMessageParam">
+        select hp.proc_inst_id_ processinstanceid, hp.proc_def_id_ processdefineid, rp.name_ processdefinename, hp.name_ processinstantcename, hp.start_user_id_ applyusercode,
+        case when hp.end_time_ is null then false else true end hasend,
+        rt.id_ taskid, rt.task_def_key_ taskkey, rt.name_ taskname, rt.assignee_ taskhandler
+        from act_hi_procinst hp
+        left join act_re_procdef rp on hp.proc_def_id_ = rp.id_
+        left join act_ru_task rt on hp.proc_inst_id_ = rt.proc_inst_id_
+        where hp.proc_inst_id_ = #{processinstanceid, jdbcType=VARCHAR}
+    </select>
+
+    <!-- 旧的实现，新的实现要求已办返回的taskName是最新的taskName -->
+    <select id="getMyHaveDoneCount_bak" parameterType="java.util.Map" resultType="long">
+        with tmp as
+        (
+                select rank() over(partition by hp.proc_inst_id_ order by ht.start_time_ desc, tr.starttime desc) ranknum,
+                hp.proc_inst_id_, hp.proc_def_id_, hp.start_user_id_ applyusercode, hp.start_time_ applytime, hp.name_ processinstancename,
+                case when hp.end_time_ is null then false else true end hasend,
+                ht.id_, ht.name_, ht.task_def_key_, ht.start_time_, ht.assignee_, ht.end_time_,
+                tr.jumpintype
+                from act_hi_procinst hp
+                inner join act_hi_taskinst ht
+                on hp.proc_inst_id_ = ht.proc_inst_id_
+                left join act_taskroute tr
+                on ht.id_ = tr.taskinstanceid
+                where ht.end_time_ is not null and ht.assignee_ = #{memberId}
+        )
+              select count(1)
+              from tmp
+              inner join act_re_procdef rp
+              on tmp.proc_def_id_ = rp.id_
+              where ranknum = 1
+    </select>
+
+    <select id="getMyHaveDonePageList_bak" parameterType="java.util.Map" resultMap="MyTaskList">
+        with tmp as
+        (
+                select rank() over(partition by hp.proc_inst_id_ order by ht.start_time_ desc, tr.starttime desc) ranknum,
+                hp.proc_inst_id_, hp.proc_def_id_, hp.start_user_id_ applyusercode, hp.start_time_ applytime, hp.name_ processinstancename,
+                case when hp.end_time_ is null then false else true end hasend,
+                ht.id_, ht.name_, ht.task_def_key_, ht.start_time_, ht.assignee_, ht.end_time_,
+                tr.jumpintype
+                from act_hi_procinst hp
+                inner join act_hi_taskinst ht
+                on hp.proc_inst_id_ = ht.proc_inst_id_
+                left join act_taskroute tr
+                on ht.id_ = tr.taskinstanceid
+                where ht.end_time_ is not null and ht.assignee_ = #{memberId}
+        )
+
+              select rp.id_ processdefineid,
+                     rp.key_ processdefinekey,
+                     rp.name_ processdefinename,
+                     tmp.proc_inst_id_ processinstanceid,
+                     tmp.processinstancename,
+                     tmp.id_ taskid,
+                     tmp.name_ taskname,
+                     tmp.task_def_key_ taskkey,
+                     tmp.start_time_ createtime,
+                     tmp.end_time_ endtime,
+                     case when tmp.assignee_ is null then false else true end hasassigned,
+                     tmp.applyusercode,
+                     tmp.applytime,
+                     tmp.hasend,
+                     case when tmp.jumpintype = 'fallback' then true else false end isfallback
+                from tmp
+                inner join act_re_procdef rp
+                on tmp.proc_def_id_ = rp.id_
+                where ranknum = 1
+                order by tmp.end_time_ desc
+                limit #{limit} offset #{offset}
+    </select>
+
+
+    <!-- 已办列表 （取的是人员已办的流程实例里处理人是他的最新的任务节点，而这个属于他任务可能还未结束） -->
+    <select id="getMyHaveDoneCount_Old" parameterType="java.util.Map" resultType="long">
+        with t1 as
+        (
+                select distinct hp.proc_inst_id_, hp.start_user_id_ applyusercode, hp.start_time_::varchar applytime,
+                hp.name_ processinstancename, hp.proc_def_id_,
+                case when hp.end_time_ is null then false else true end hasend
+                from act_hi_procinst hp
+                left join act_hi_taskinst ht
+                on hp.proc_inst_id_ = ht.proc_inst_id_
+                where hp.start_user_id_ = #{memberId} or (ht.end_time_ is not null and ht.assignee_ = #{memberId})
+        ), tmp as
+        (
+                select rank() over(partition by t1.proc_inst_id_ order by ht.start_time_ desc, tr.starttime desc) ranknum,
+                t1.*,
+                ht.id_, ht.name_, ht.task_def_key_, ht.start_time_, ht.assignee_, ht.end_time_,
+                tr.jumpintype
+                from t1
+                left join act_hi_taskinst ht
+                on t1.proc_inst_id_ = ht.proc_inst_id_
+                left join act_taskroute tr
+                on ht.id_ = tr.taskinstanceid
+                where ht.assignee_ = #{memberId}
+        )
+                select count(1)
+                from tmp
+                inner join act_re_procdef rp
+                on tmp.proc_def_id_ = rp.id_
+                where ranknum = 1
+    </select>
+
+    <select id="getMyHaveDonePageList_Old" parameterType="java.util.Map" resultMap="MyTaskList">
+        with t1 as
+        (
+                select distinct hp.proc_inst_id_, hp.start_user_id_ applyusercode, hp.start_time_::varchar applytime,
+                hp.name_ processinstancename, hp.proc_def_id_,
+                case when hp.end_time_ is null then false else true end hasend
+                from act_hi_procinst hp
+                left join act_hi_taskinst ht
+                on hp.proc_inst_id_ = ht.proc_inst_id_
+                where hp.start_user_id_ = #{memberId} or (ht.end_time_ is not null and ht.assignee_ = #{memberId})
+        ), tmp as
+        (
+                select rank() over(partition by t1.proc_inst_id_ order by ht.start_time_ desc, tr.starttime desc) ranknum,
+                t1.*,
+                ht.id_, ht.name_, ht.task_def_key_, ht.start_time_, ht.assignee_, ht.end_time_,
+                tr.jumpintype
+                from t1
+                left join act_hi_taskinst ht
+                on t1.proc_inst_id_ = ht.proc_inst_id_
+                left join act_taskroute tr
+                on ht.id_ = tr.taskinstanceid
+                where ht.assignee_ = #{memberId}
+        )
+                select rp.id_ processdefineid,
+                       rp.key_ processdefinekey,
+                       rp.name_ processdefinename,
+                       tmp.proc_inst_id_ processinstanceid,
+                       tmp.processinstancename,
+                       tmp.id_ taskid,
+                       tmp.name_ taskname,
+                       tmp.task_def_key_ taskkey,
+                       tmp.start_time_::varchar createtime,
+                       tmp.end_time_ endtime,
+                       case when tmp.assignee_ is null then false else true end hasassigned,
+                       tmp.applyusercode,
+                       tmp.applytime,
+                       tmp.jumpintype,
+                       tmp.hasend,
+                       case when tmp.jumpintype = 'fallback' then true else false end isfallback
+                from tmp
+                inner join act_re_procdef rp
+                on tmp.proc_def_id_ = rp.id_
+                where ranknum = 1
+                order by tmp.end_time_ desc
+                limit #{limit} offset #{offset}
+    </select>
+
+</mapper>

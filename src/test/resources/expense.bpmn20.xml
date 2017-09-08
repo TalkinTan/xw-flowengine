@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:activiti="http://activiti.org/bpmn"
+             xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+             xmlns:omgdc="http://www.omg.org/spec/DD/20100524/DC"
+             xmlns:omgdi="http://www.omg.org/spec/DD/20100524/DI"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             targetNamespace="Examples"
+             xsi:schemaLocation="http://www.omg.org/spec/BPMN/20100524/MODEL
+             http://www.omg.org/spec/BPMN/2.0/20100501/BPMN20.xsd">
+    <process id="expense" name="报销单流程">
+        <startEvent id="apply" activiti:initiator="applyUser" name="发起" activiti:formKey="startForm">
+            <extensionElements>
+                <activiti:relateui uicode="startForm"/>
+            </extensionElements>
+        </startEvent>
+        <userTask id="userTask1" name="销售B审核" activiti:assignee="831025515799248899" activiti:formKey="firstForm">
+            <documentation>
+                销售2审核
+            </documentation>
+            <extensionElements>
+                <activiti:relateui uicode="firstForm"/>
+                <activiti:userstrategy departments="department1,department2" customstrateggy="applydept" />
+                <activiti:choice value="同意,不同意,中止" />
+            </extensionElements>
+        </userTask>
+        <userTask id="userTask2" name="经理角色审核" activiti:candidateGroups="829602839767431001"
+                  activiti:formKey="secondForm">
+            <extensionElements>
+                <activiti:relateui uicode="secondForm"/>
+                <activiti:userstrategy departments="department3,department4" customstrateggy="applydept" />
+                <activiti:choice value="同意,不同意" />
+            </extensionElements>
+        </userTask>
+        <endEvent id="theEnd" name="结束"/>
+
+        <sequenceFlow id="flow1" sourceRef="apply" targetRef="userTask1">
+        </sequenceFlow>
+        <sequenceFlow id="flow2" name="同意" sourceRef="userTask1" targetRef="userTask2">
+            <conditionExpression xsi:type="tFormalExpression">${choice == '同意'}</conditionExpression>
+        </sequenceFlow>
+        <sequenceFlow id="flow4" name="不同意" sourceRef="userTask1" targetRef="theEnd">
+            <conditionExpression xsi:type="tFormalExpression">${choice == '不同意'}</conditionExpression>
+        </sequenceFlow>
+        <sequenceFlow id="flow3" sourceRef="userTask2" targetRef="theEnd">
+        </sequenceFlow>
+    </process>
+    <bpmndi:BPMNDiagram id="BPMNDiagram_expense">
+        <bpmndi:BPMNPlane bpmnElement="expense" id="BPMNPlane_expense">
+            <bpmndi:BPMNShape bpmnElement="apply" id="BPMNShape_apply">
+                <omgdc:Bounds height="35.0" width="35.0" x="80.0" y="110.0"></omgdc:Bounds>
+            </bpmndi:BPMNShape>
+            <bpmndi:BPMNShape bpmnElement="userTask1" id="BPMNShape_userTask1">
+                <omgdc:Bounds height="55.0" width="105.0" x="200.0" y="100.0"></omgdc:Bounds>
+            </bpmndi:BPMNShape>
+            <bpmndi:BPMNShape bpmnElement="userTask2" id="BPMNShape_userTask2">
+                <omgdc:Bounds height="55.0" width="105.0" x="420.0" y="100.0"></omgdc:Bounds>
+            </bpmndi:BPMNShape>
+            <bpmndi:BPMNShape bpmnElement="theEnd" id="BPMNShape_theEnd">
+                <omgdc:Bounds height="35.0" width="35.0" x="455.0" y="240.0"></omgdc:Bounds>
+            </bpmndi:BPMNShape>
+            <bpmndi:BPMNEdge bpmnElement="flow1" id="BPMNEdge_flow1">
+                <omgdi:waypoint x="115.0" y="127.0"></omgdi:waypoint>
+                <omgdi:waypoint x="200.0" y="127.0"></omgdi:waypoint>
+            </bpmndi:BPMNEdge>
+            <bpmndi:BPMNEdge bpmnElement="flow2" id="BPMNEdge_flow2">
+                <omgdi:waypoint x="305.0" y="127.0"></omgdi:waypoint>
+                <omgdi:waypoint x="420.0" y="127.0"></omgdi:waypoint>
+                <bpmndi:BPMNLabel>
+                    <omgdc:Bounds height="14.0" width="100.0" x="335.0" y="127.0"></omgdc:Bounds>
+                </bpmndi:BPMNLabel>
+            </bpmndi:BPMNEdge>
+            <bpmndi:BPMNEdge bpmnElement="flow3" id="BPMNEdge_flow3">
+                <omgdi:waypoint x="472.0" y="155.0"></omgdi:waypoint>
+                <omgdi:waypoint x="472.0" y="240.0"></omgdi:waypoint>
+            </bpmndi:BPMNEdge>
+            <bpmndi:BPMNEdge bpmnElement="flow4" id="BPMNEdge_flow4">
+                <omgdi:waypoint x="252.0" y="155.0"></omgdi:waypoint>
+                <omgdi:waypoint x="472.0" y="240.0"></omgdi:waypoint>
+                <bpmndi:BPMNLabel>
+                    <omgdc:Bounds height="14.0" width="100.0" x="287.0" y="200.0"></omgdc:Bounds>
+                </bpmndi:BPMNLabel>
+            </bpmndi:BPMNEdge>
+        </bpmndi:BPMNPlane>
+    </bpmndi:BPMNDiagram>
+</definitions>
